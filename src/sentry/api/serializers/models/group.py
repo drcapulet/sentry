@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import iterools
+
 from collections import namedtuple
 from datetime import timedelta
 from django.core.urlresolvers import reverse
@@ -66,14 +68,25 @@ class GroupSerializer(Serializer):
             ).values_list('group', 'release')
         )
 
+        # Asking for the plugins n times can get expesnive, especially when the
+        # projects could all be the same
+        plugins_by_project = dict()
+        for project_id, grouped in itertools.groupby(item_list, lambda i: i.project_id):
+            item = list(grouped)[0]
+
+            plugins_by_project[item.project] = {
+                1: list(plugins.for_project(project=item.project, version=1)),
+                2: list(plugins.for_project(project=item.project, version=2)),
+            }
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.last_seen
 
             annotations = []
-            for plugin in plugins.for_project(project=item.project, version=1):
+            for plugin in plugins_by_project[item.project][1]:
                 safe_execute(plugin.tags, None, item, annotations)
-            for plugin in plugins.for_project(project=item.project, version=2):
+            for plugin in plugins_by_project[item.project][2]:
                 annotations.extend(safe_execute(plugin.get_annotations, group=item) or ())
 
             result[item] = {
