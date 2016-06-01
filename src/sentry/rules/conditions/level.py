@@ -17,6 +17,7 @@ LEVEL_CHOICES = [
     ("{0}".format(k), "{0}".format(v.capitalize()))
     for k, v in sorted(LOG_LEVELS.items(), key=lambda x: x[0], reverse=True)
 ]
+LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 
 
 class LevelMatchType(object):
@@ -49,7 +50,12 @@ class LevelCondition(EventCondition):
             return False
 
         desired_level = int(desired_level)
-        level = int(event.level)
+        # Fetch the event level from the tags since event.level is
+        # event.group.level which may have changed
+        try:
+            level = LOG_LEVEL_REVERSE_MAP[event.get_tag('level')]
+        except KeyError:
+            return False
 
         if desired_match == LevelMatchType.EQUAL:
             return level == desired_level
