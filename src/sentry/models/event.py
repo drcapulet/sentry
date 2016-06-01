@@ -14,6 +14,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.constants import LOG_LEVELS
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField,
     Model, NodeField, sane_repr
@@ -22,6 +23,8 @@ from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars, strip
+
+LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 
 
 class Event(Model):
@@ -197,14 +200,16 @@ class Event(Model):
     # XXX(dcramer): compatibility with plugins
     def get_level_display(self):
         warnings.warn('Event.get_level_display is deprecated. Use Event.tags instead.',
-                      DeprecationWarning)
-        return self.group.get_level_display()
+                          DeprecationWarning)
+        return LOG_LEVELS.get(self.level)
 
     @property
     def level(self):
-        warnings.warn('Event.level is deprecated. Use Event.tags instead.',
-                      DeprecationWarning)
-        return self.group.level
+        level = self.get_tag('event')
+        if level and LOG_LEVEL_REVERSE_MAP.get(level):
+            return LOG_LEVEL_REVERSE_MAP.get(level)
+        else:
+            return self.group.level
 
     @property
     def logger(self):
