@@ -77,6 +77,6 @@
     "po-catalog-loader": "^1.2.0",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",
-    "sprintf-js": "^1.0.3"
+    "sprintf-js": "1.0.3"
   }
 }
